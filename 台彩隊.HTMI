@@ -1,0 +1,143 @@
+// 賓果賓果抽籤機 - 手機版簡化版（支援動畫與盈虧統計）
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>台彩隊止癢模擬器</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    .ball { display: inline-block; margin: 6px; padding: 10px 16px; border-radius: 50%; background-color: #f39c12; color: white; font-size: 18px; font-weight: bold; }
+    .matched { background-color: #27ae60; }
+    .superhit { background-color: #c0392b; }
+    .draw-section { margin-bottom: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
+    #userPickDisplay, #superPickDisplay, #resultDisplay { margin-top: 20px; }
+    button, input[type="number"], input[type="text"] { padding: 10px; font-size: 16px; margin: 6px; width: 90%; max-width: 300px; }
+  </style>
+</head>
+<body>
+  <h1>台彩隊止癢模擬器</h1>
+
+  <div>
+    <label for="stars">選擇星數（1~10）：</label>
+    <input type="number" id="stars" min="1" max="10" value="3" />
+    <button onclick="quickPick()">隨機快選</button>
+  </div>
+
+  <div>
+    <label for="userInput">請輸入你選的號碼（1~80，用逗號分隔）：</label><br/>
+    <input type="text" id="userInput" placeholder="例如：5,12,33" />
+  </div>
+
+  <div>
+    <label for="superPick">選擇你的超級獎號（1~80）：</label>
+    <input type="number" id="superPick" min="1" max="80" />
+  </div>
+
+  <div>
+    <label for="bet">投注倍數：</label>
+    <input type="number" id="bet" min="1" value="1" />
+  </div>
+
+  <button onclick="confirmSelection()">確定選號</button>
+  <button onclick="startDrawAnimated()">開獎（動畫）</button>
+  <button onclick="resetDraw()">重置</button>
+
+  <div id="userPickDisplay"></div>
+  <div id="superPickDisplay"></div>
+  <div id="resultDisplay"></div>
+
+  <script>
+    let userPick = [], superPick = null, bet = 1;
+    let totalWin = 0, totalCost = 0, round = 1;
+
+    const prizeTable = {
+      1: {1: 50},
+      2: {2: 500},
+      3: {2: 50, 3: 500},
+      4: {2: 10, 3: 100, 4: 1000},
+      5: {3: 40, 4: 200, 5: 2000},
+      6: {3: 20, 4: 100, 5: 500, 6: 5000},
+      7: {3: 10, 4: 50, 5: 200, 6: 1000, 7: 10000},
+      8: {4: 40, 5: 200, 6: 1000, 7: 3000, 8: 20000},
+      9: {4: 20, 5: 100, 6: 500, 7: 2000, 8: 10000, 9: 30000},
+      10: {5: 50, 6: 200, 7: 1000, 8: 5000, 9: 20000, 10: 100000}
+    };
+
+    function quickPick() {
+      const starCount = parseInt(document.getElementById("stars").value);
+      const pool = Array.from({ length: 80 }, (_, i) => i + 1);
+      userPick = [];
+      while (userPick.length < starCount) {
+        const i = Math.floor(Math.random() * pool.length);
+        userPick.push(pool.splice(i, 1)[0]);
+      }
+      document.getElementById("userInput").value = userPick.join(",");
+    }
+
+    function confirmSelection() {
+      const raw = document.getElementById("userInput").value;
+      userPick = raw.split(",").map(s => parseInt(s.trim())).filter(n => n >= 1 && n <= 80);
+      superPick = parseInt(document.getElementById("superPick").value);
+      bet = parseInt(document.getElementById("bet").value) || 1;
+      document.getElementById("userPickDisplay").innerHTML =
+        "你的選號：" + userPick.map(n => `<span class='ball'>${n}</span>`).join(" ");
+      document.getElementById("superPickDisplay").innerHTML =
+        "你的超級獎號：<span class='ball'>" + (superPick || "未選") + "</span>";
+    }
+
+    function drawOneRound() {
+      let pool = Array.from({ length: 80 }, (_, i) => i + 1);
+      let draw = [];
+      for (let i = 0; i < 20; i++) {
+        const idx = Math.floor(Math.random() * pool.length);
+        draw.push(pool.splice(idx, 1)[0]);
+      }
+      return draw;
+    }
+
+    function startDrawAnimated() {
+      const draw = drawOneRound();
+      const hit = userPick.filter(n => draw.includes(n));
+      const superHit = draw[19] === superPick;
+      const prize = (prizeTable[userPick.length]?.[hit.length] || 0) * bet;
+      const superPrize = superHit ? 25 * bet : 0;
+      const cost = 25 * bet + (superPick ? 25 * bet : 0);
+      totalCost += cost;
+      totalWin += prize + superPrize;
+
+      let drawDisplay = "";
+      for (let i = 0; i < 20; i++) {
+        const n = draw[i];
+        const matched = hit.includes(n);
+        const isSuper = i === 19 && superHit;
+        drawDisplay += `<span class='ball ${matched ? "matched" : ""} ${isSuper ? "superhit" : ""}'>${n}</span>`;
+      }
+
+      const result = `
+        <div class='draw-section'>
+          <h3>第 ${round++} 抽</h3>
+          ${drawDisplay}<br/>
+          中 ${hit.length} 顆 ${superHit ? '＋超級獎號' : ''}，得 ${prize + superPrize} 元
+          <p>總花費：${totalCost} 元｜總獎金：${totalWin} 元｜盈虧：${totalWin - totalCost} 元</p>
+        </div>`;
+
+      document.getElementById("resultDisplay").innerHTML += result;
+    }
+
+    function resetDraw() {
+      userPick = [];
+      superPick = null;
+      totalCost = 0;
+      totalWin = 0;
+      round = 1;
+      document.getElementById("userInput").value = "";
+      document.getElementById("superPick").value = "";
+      document.getElementById("bet").value = "1";
+      document.getElementById("userPickDisplay").innerHTML = "";
+      document.getElementById("superPickDisplay").innerHTML = "";
+      document.getElementById("resultDisplay").innerHTML = "";
+    }
+  </script>
+</body>
+</html>
