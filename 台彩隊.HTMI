@@ -9,7 +9,7 @@
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
     .ball { display: inline-block; margin: 6px; padding: 10px 16px; border-radius: 50%; background-color: #f39c12; color: white; font-size: 18px; font-weight: bold; }
     .matched { background-color: #27ae60; }
-    .superhit { background-color: #c0392b; }
+    .superhit { background-color: red; }
     .draw-section { margin-bottom: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
     #userPickDisplay, #superPickDisplay, #resultDisplay { margin-top: 20px; }
     button, input[type="number"], input[type="text"] { padding: 10px; font-size: 16px; margin: 6px; width: 90%; max-width: 300px; }
@@ -101,8 +101,8 @@
       const hit = userPick.filter(n => draw.includes(n));
       const superHit = draw[19] === superPick;
       const prize = (prizeTable[userPick.length]?.[hit.length] || 0) * bet;
-      const superPrize = superHit ? 25 * bet : 0;
-      const cost = 25 * bet + (superPick ? 25 * bet : 0);
+      const superPrize = superHit ? 1200 * bet : 0;
+      const cost = (25 + (superPick ? 25 : 0)) * bet;
       totalCost += cost;
       totalWin += prize + superPrize;
 
